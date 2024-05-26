@@ -61,5 +61,4 @@ func MigrateDB() {
 func SetTestData() {
 	DBInstance.Exec("INSERT INTO users (username) VALUES ('testAuthorName');") // only for testing not for production
 	DBInstance.Exec("INSERT INTO users (username) VALUES ('testReaderName');") // only for testing not for production
-	
 }
