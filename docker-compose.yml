@@ -1,0 +1,38 @@
+version: "3.0.0"
+
+networks:
+  graphql_api_posts_network:
+
+services:
+  app:
+    build: .
+    ports:
+      - "8889:8889"
+    depends_on:
+      - postgres
+    networks:
+      - graphql_api_posts_network
+    environment:
+      SERVER_PORT: 8889
+      DB_HOST: localhost
+      PG_USERNAME: postgres
+      PG_PASSWORD: qwerty
+      PG_PORT: 5432
+      PG_BNAME: graphql_api_posts
+      PG_SSLMODE: disable
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: qwerty
+      POSTGRES_DB: graphql_api_posts
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - graphql_api_posts_network
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
