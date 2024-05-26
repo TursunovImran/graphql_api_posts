@@ -17,7 +17,7 @@ type Comment {
   authorId: Int!
   content: String! # Ограничено 2000 символами
   createdAt: String!
-  parentId: Int # Внешний ключ к родительскому комментарию, nil для комментария к посту
+  parentId: Int # Внешний ключ к родительскому комментарию, NULL для комментария к посту
   replies: [Comment!]
 }
 
@@ -42,7 +42,7 @@ input PostInput {
 
 input CommentInput {
   content: String!
-  parentId: Int # Внешний ключ к родительскому комментарию, nil для комментария к посту
+  parentId: Int # Внешний ключ к родительскому комментарию, NULL для комментария к посту
 }
 
 # Взаимодействия с API

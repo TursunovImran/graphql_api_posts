@@ -38,7 +38,7 @@ func ConnectDB() {
 
 
 func MigrateDB() {
-	// Создание таблиц, ВАЖНО: Соблюдать последовательность
+	// Создание/миграция таблиц, ВАЖНО: Соблюдать последовательность
 	DBInstance.AutoMigrate(&dbmodel.User{}, &dbmodel.Post{}, &dbmodel.Comment{})
 
 	// Отношение "Один ко многим" между Post и Comment
@@ -56,4 +56,10 @@ func MigrateDB() {
 	DBInstance.Model(&dbmodel.Post{}).AddForeignKey("author_id", "users(id)", "CASCADE", "CASCADE")
 
 	log.Println("Database migration completed.....")
+}
+
+func SetTestData() {
+	DBInstance.Exec("INSERT INTO users (username) VALUES ('testAuthorName');") // only for testing not for production
+	DBInstance.Exec("INSERT INTO users (username) VALUES ('testReaderName');") // only for testing not for production
+	
 }

@@ -7,48 +7,145 @@ package graph
 import (
 	"context"
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/TursunovImran/graphql_api_posts/graph/model"
+
+	"github.com/jinzhu/gorm"
 )
+
 
 // CreatePost is the resolver for the createPost field.
 func (r *mutationResolver) CreatePost(ctx context.Context, postInput model.PostInput) (*model.Post, error) {
-	panic(fmt.Errorf("not implemented: CreatePost - createPost"))
+	newPost := model.Post{
+		AuthorID : 1,
+		Title: postInput.Title,
+		Content: postInput.Content,
+		CreatedAt: time.Now().Format("2024-05-26 12:34:56"),
+		CanComment:  postInput.CanComment,
+	}
+	   
+	if err := r.Database.Create(&newPost).Error; err != nil {
+		log.Printf("error during creation post: %s", err.Error())
+		return nil, err
+	}
+	
+	return &newPost, nil
 }
 
 // CreateComment is the resolver for the createComment field.
 func (r *mutationResolver) CreateComment(ctx context.Context, commentInput model.CommentInput) (*model.Comment, error) {
-	panic(fmt.Errorf("not implemented: CreateComment - createComment"))
+	newComment := model.Comment{
+		PostID: 1,
+		AuthorID : 2,
+		Content: commentInput.Content,
+		ParentID: commentInput.ParentID,
+		CreatedAt: time.Now().Format("2024-05-26 12:34:56"),
+	}
+	   
+	if err := r.Database.Create(&newComment).Error; err != nil {
+		log.Printf("error during creation comment: %s", err.Error())
+		return nil, err
+	}
+	
+	return &newComment, nil
 }
 
 // DeletePost is the resolver for the deletePost field.
 func (r *mutationResolver) DeletePost(ctx context.Context, id int) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeletePost - deletePost"))
+	if err := r.Database.Delete(&model.Post{}, id).Error; err != nil {
+		log.Printf("error during creation post: %s", err.Error())
+		return false, err
+	}
+	
+	return true, nil
 }
 
 // DeleteComment is the resolver for the deleteComment field.
 func (r *mutationResolver) DeleteComment(ctx context.Context, id int) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeleteComment - deleteComment"))
+	if err := r.Database.Delete(&model.Comment{}, id).Error; err != nil {
+		log.Printf("error during creation post: %s", err.Error())
+		return false, err
+	}
+	
+	return true, nil
 }
 
 // GetPosts is the resolver for the getPosts field.
 func (r *queryResolver) GetPosts(ctx context.Context) ([]*model.Post, error) {
-	panic(fmt.Errorf("not implemented: GetPosts - getPosts"))
+	posts := []*model.Post{}
+
+	if err := r.Database.Model(&posts).Find(&posts).Error; err != nil {
+		log.Printf("error during get all post: %s", err.Error())
+		return nil, err
+	}
+
+	return posts, nil
 }
 
 // GetPost is the resolver for the getPost field.
 func (r *queryResolver) GetPost(ctx context.Context, id int) (*model.Post, error) {
-	panic(fmt.Errorf("not implemented: GetPost - getPost"))
+	var post *model.Post
+
+	if err := r.Database.Find(&post, id).Error; err != nil {
+		log.Printf("error during get post by id %d: %s", id,  err.Error())
+		return nil, err
+	  }
+	  
+	return post, nil
 }
 
 // GetComments is the resolver for the getComments field.
 func (r *queryResolver) GetComments(ctx context.Context, postID int, pagination *model.PaginationInput) ([]*model.Comment, error) {
-	panic(fmt.Errorf("not implemented: GetComments - getComments"))
+	limit := pagination.Limit
+	page := pagination.Page
+	if (limit <= 0 || page <= 0) {
+		return nil, fmt.Errorf("invalid pagination: limit and page must be positive")
+	}
+
+	db := r.Database.Model(&model.Comment{}).Where("post_id = ?", postID)
+	offset := (page - 1) * limit
+	db = db.Limit(limit).Offset(offset)
+
+	var comments []*model.Comment
+	if err := db.Find(&comments).Error; err != nil {
+		return nil, err
+	}
+
+	return comments, nil
 }
 
 // PostComments is the resolver for the postComments field.
 func (r *subscriptionResolver) PostComments(ctx context.Context, postID int) (<-chan *model.Comment, error) {
-	panic(fmt.Errorf("not implemented: PostComments - postComments"))
+	comments := make(chan *model.Comment)
+
+	go func() {
+		defer close(comments)
+		for {
+			time.Sleep(time.Second * 10)
+
+			var latestComment model.Comment
+			if err := r.Database.Model(&model.Comment{}).Where("post_id = ?", postID).Order("created_at DESC").First(&latestComment).Error; err != nil {
+				if err == gorm.ErrRecordNotFound {
+					continue
+				}
+				log.Println("error fetching latest comment:", err)
+				return
+			}
+
+			select {
+				case <-ctx.Done():
+					log.Println("Subscription Closed")
+					return
+				case comments <- &latestComment:
+					// Сообщение прошло в канал
+			}
+			comments <- &latestComment
+		}
+	}()
+
+	return comments, nil
 }
 
 // Mutation returns MutationResolver implementation.

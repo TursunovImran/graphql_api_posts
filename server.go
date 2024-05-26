@@ -28,6 +28,7 @@ func main() {
 
 	database.ConnectDB()
 	database.MigrateDB()
+	database.SetTestData() // авторизация не является основной целью, функция позволит полноценно использовать систему от пары юзеров
 
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{
 																Resolvers: &graph.Resolver{
